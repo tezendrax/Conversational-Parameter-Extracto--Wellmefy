@@ -33,6 +33,18 @@ const PRESETS = [
         student_id: "student_somatic_05",
         time_of_day: "afternoon",
         history: "Performance anxiety issues."
+    },
+    {
+        text: "My classes are going fine, and I'm not particularly worried about academics.",
+        student_id: "student_acad_neg",
+        time_of_day: "morning",
+        history: "Testing negated academic stress."
+    },
+    {
+        text: "I'm proud of my project, but I'm worried about internship interviews. My heartbeat is racing and I feel nauseous.",
+        student_id: "student_mixed_somatic",
+        time_of_day: "afternoon",
+        history: "Testing mixed emotions and explicit somatic symptoms."
     }
 ];
 

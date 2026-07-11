@@ -68,3 +68,49 @@ def test_extract_from_text():
         assert record.transcribed_text == data["transcript"]
     finally:
         db.close()
+
+def test_custom_heuristics():
+    # 1. Test context-aware academic stress negation
+    payload_negation = {
+        "text": "My classes are going fine, and I'm not particularly worried about academics.",
+        "context": {
+            "student_id": "student_neg",
+            "time_of_day": "morning",
+            "interaction_history_context": "None"
+        }
+    }
+    response_neg = client.post("/api/v1/cpe/extract", json=payload_negation)
+    assert response_neg.status_code == 200
+    params_neg = response_neg.json()["parameters"]
+    assert params_neg["academic_stress"] is False
+
+    # 2. Test somatic symptom extraction and normalization
+    payload_somatic = {
+        "text": "My heartbeat is racing and I feel nauseous. Also my appetite has decreased.",
+        "context": {
+            "student_id": "student_somatic",
+            "time_of_day": "afternoon",
+            "interaction_history_context": "None"
+        }
+    }
+    response_som = client.post("/api/v1/cpe/extract", json=payload_somatic)
+    assert response_som.status_code == 200
+    params_som = response_som.json()["parameters"]
+    assert "racing heartbeat" in params_som["somatic_symptoms"]
+    assert "nausea" in params_som["somatic_symptoms"]
+    assert "reduced appetite" in params_som["somatic_symptoms"]
+
+    # 3. Test mixed-emotion reasoning (pride + interview anxiety)
+    payload_mixed = {
+        "text": "I'm proud of my project, but I'm worried about internship interviews.",
+        "context": {
+            "student_id": "student_mixed",
+            "time_of_day": "evening",
+            "interaction_history_context": "None"
+        }
+    }
+    response_mix = client.post("/api/v1/cpe/extract", json=payload_mixed)
+    assert response_mix.status_code == 200
+    params_mix = response_mix.json()["parameters"]
+    assert 0.20 <= params_mix["emotional_valency"] <= 0.30
+    assert 0.15 <= params_mix["sentiment_score"] <= 0.25
