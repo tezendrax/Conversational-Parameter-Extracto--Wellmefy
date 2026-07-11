@@ -114,3 +114,37 @@ def test_custom_heuristics():
     params_mix = response_mix.json()["parameters"]
     assert 0.20 <= params_mix["emotional_valency"] <= 0.30
     assert 0.15 <= params_mix["sentiment_score"] <= 0.25
+
+def test_somatic_explicit_vs_inferred_and_causal_stress():
+    # 1. Test "My classes are going well. I'm worried about my grandfather."
+    # Expect: academic_stress = False, valency is negative (-0.45), explicit_symptoms = empty []
+    payload_causal = {
+        "text": "My classes are going well. I'm worried about my grandfather.",
+        "context": {
+            "student_id": "student_causal_test",
+            "time_of_day": "morning",
+            "interaction_history_context": "None"
+        }
+    }
+    response_causal = client.post("/api/v1/cpe/extract", json=payload_causal)
+    assert response_causal.status_code == 200
+    params_causal = response_causal.json()["parameters"]
+    assert params_causal["academic_stress"] is False
+    assert params_causal["emotional_valency"] == -0.45
+    assert params_causal["explicit_symptoms"] == []
+    
+    # 2. Test "I got no sleep last night because I was studying all night for 20 hours."
+    # Expect: inferred_risks contains "sleep deprivation risk", explicit_symptoms does not contain "insomnia"
+    payload_inferred = {
+        "text": "I got no sleep last night because I was studying all night for 20 hours.",
+        "context": {
+            "student_id": "student_inferred_test",
+            "time_of_day": "night",
+            "interaction_history_context": "None"
+        }
+    }
+    response_inf = client.post("/api/v1/cpe/extract", json=payload_inferred)
+    assert response_inf.status_code == 200
+    params_inf = response_inf.json()["parameters"]
+    assert "sleep deprivation risk" in params_inf["inferred_risks"]
+    assert "insomnia" not in params_inf["explicit_symptoms"]

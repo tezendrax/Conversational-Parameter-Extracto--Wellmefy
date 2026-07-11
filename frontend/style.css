@@ -746,7 +746,7 @@ textarea:focus, select:focus, input[type="text"]:focus {
 /* Risk indicators card */
 .risk-section {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: 1rem;
     margin: 0.5rem 0;
 }

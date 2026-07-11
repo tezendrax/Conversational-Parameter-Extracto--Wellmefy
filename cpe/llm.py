@@ -40,41 +40,50 @@ def _mock_extract(text: str, context: Optional[ContextMetadata] = None) -> CPEPa
     arousal = 0.5
     cognitive_load = 2
     academic_stress = False
-    somatic_symptoms = []
+    explicit_symptoms = []
+    inferred_risks = []
     confidence_score = 0.95 if text_lower else 0.5
     sentiment = 0.0
     
-    # 2. Check for Academic stress with context-aware negation rules
-    acad_keywords = ["exam", "deadline", "test", "grade", "assignment", "homework", "professor", "class", "classes", "study", "studying", "cs", "computer science", "academics"]
+    # 2. Check for Academic stress with causal reasoning
+    # Academic stress = TRUE only if academic context exists AND is the source of distress.
+    acad_keywords = ["exam", "deadline", "test", "grade", "assignment", "homework", "professor", "class", "classes", "study", "studying", "cs", "computer science", "academics", "semester"]
     has_acad_keywords = any(w in text_lower for w in acad_keywords)
     
-    # Negation indicators for academic stress
-    academic_negations = [
-        "not worried about academics",
-        "not worried about class",
-        "not worried about exam",
+    # Check for positive academic cues showing it is manageable / going well
+    academic_manageable = any(phrase in text_lower for phrase in [
+        "classes are going well",
         "classes are going fine",
         "classes are fine",
         "classes going fine",
+        "academics are fine",
+        "exams are fine",
+        "studying is fine",
+        "not worried about academics",
+        "not worried about class",
+        "not worried about exam",
+        "not worried about my classes",
+        "not worried about my exams",
         "academics aren't the issue",
         "academics are not the issue",
-        "academics are fine",
-        "studying is fine",
-        "not particularly worried about academics",
-        "not particularly worried about class",
-        "not worried about my classes",
-        "not worried about my exams"
-    ]
-    is_acad_negated = any(neg in text_lower for neg in academic_negations)
+        "not particularly worried about academics"
+    ])
     
-    if has_acad_keywords and not is_acad_negated:
-        # Check if the distress is actually linked to academic terms
-        stress_indicators = ["worry", "worried", "stressed", "overwhelmed", "anxious", "fail", "failed", "struggle", "panic", "missed", "don't know", "dont know"]
+    if has_acad_keywords and not academic_manageable:
+        stress_indicators = ["worry", "worried", "stressed", "overwhelmed", "anxious", "fail", "failed", "struggle", "panic", "missed", "don't know", "dont know", "terrified", "fear", "scared"]
         has_stress = any(s in text_lower for s in stress_indicators) or (neg_count > pos_count)
+        
+        # Check if the distress is explicitly caused by something else (e.g. grandfather, family, health)
+        non_acad_causes = ["grandfather", "grandmother", "family", "mother", "father", "relationship", "sick", "illness", "health"]
+        has_unrelated_cause = any(cause in text_lower for cause in non_acad_causes)
+        
         if has_stress:
-            academic_stress = True
-            cognitive_load = 3
-            
+            if has_unrelated_cause and not any(term in text_lower for term in ["terrified of exams", "fail my exam", "failed my test"]):
+                academic_stress = False
+            else:
+                academic_stress = True
+                cognitive_load = max(cognitive_load, 3)
+                
     # 3. Detect Panic / High Academic Confusion (e.g. user's test case)
     confusion_indicators = ["don't know", "dont know", "missed", "not know", "what to do", "didn't study", "didnt study"]
     confusion_count = sum(text_lower.count(ind) for ind in confusion_indicators)
@@ -83,20 +92,27 @@ def _mock_extract(text: str, context: Optional[ContextMetadata] = None) -> CPEPa
         valency = -0.70
         arousal = 0.85
         cognitive_load = 4
-        # If highly repetitive, push cognitive load to 5 and increase arousal
         if word_repetition_index > 0.20 or confusion_count >= 4:
             cognitive_load = 5
             arousal = 0.88
         confidence_score = 0.78
         sentiment = -0.72
     else:
-        # 4. Mixed-Emotion Reasoning vs Standard heuristics
-        # Heuristics for specific mixed emotion patterns, e.g. "proud... but worried"
+        # 4. Multi-Dimensional Emotion Reasoning (Joy, Anxiety, Sadness, Hope, Confidence)
+        # Weigh emotions by dominant emotional conclusion instead of simple positive/negative word averages
+        # Example 1: "I'm proud of my project, but I'm worried about internship interviews."
+        # pride (+0.60), interview anxiety (-0.40) -> dominant is proud with minor worry -> positive mood
         if "proud" in text_lower and ("worried" in text_lower or "worry" in text_lower or "interview" in text_lower):
-            # Weigh the pride (positive) slightly over the worry, yielding a net positive mood
             valency = 0.25
             sentiment = 0.20
             arousal = 0.60
+            cognitive_load = max(cognitive_load, 3)
+        # Example 2: "My classes are going well. I'm worried about my grandfather."
+        # Classes well (neutral/hope), grandfather (sadness/anxiety) -> dominant conclusion is grandfather sadness -> negative mood
+        elif "grandfather" in text_lower and ("worried" in text_lower or "worry" in text_lower or "sick" in text_lower):
+            valency = -0.45
+            sentiment = -0.40
+            arousal = 0.65
             cognitive_load = max(cognitive_load, 3)
         elif pos_count > neg_count:
             valency = 0.4
@@ -110,8 +126,8 @@ def _mock_extract(text: str, context: Optional[ContextMetadata] = None) -> CPEPa
         else:
             sentiment = 0.0
             
-    # 5. Explicit Somatic symptoms detection and normalization
-    somatic_rules = {
+    # 5. Explicit Somatic symptoms detection (directly stated only)
+    explicit_rules = {
         "heartbeat is racing": "racing heartbeat",
         "heart is racing": "racing heartbeat",
         "racing heartbeat": "racing heartbeat",
@@ -131,19 +147,32 @@ def _mock_extract(text: str, context: Optional[ContextMetadata] = None) -> CPEPa
         "cant sleep": "insomnia",
         "couldn't sleep": "insomnia",
         "couldnt sleep": "insomnia",
-        "sleep": "insomnia",
         "trouble sleeping": "insomnia",
         "insomnia": "insomnia",
-        "tired": "fatigue",
-        "fatigue": "fatigue",
-        "exhausted": "fatigue",
         "stomach hurts": "stomachache",
         "stomachache": "stomachache",
     }
-    
-    for key, val in somatic_rules.items():
-        if key in text_lower and val not in somatic_symptoms:
-            somatic_symptoms.append(val)
+    for key, val in explicit_rules.items():
+        if key in text_lower and val not in explicit_symptoms:
+            explicit_symptoms.append(val)
+            
+    # 6. Inferred Risks (lifestyle cues like studying 20 hours or getting no sleep)
+    inferred_rules = {
+        "studying 20 hours": "sleep deprivation risk",
+        "studying all night": "sleep deprivation risk",
+        "working all night": "sleep deprivation risk",
+        "no sleep": "sleep deprivation risk",
+        "without breaks": "burnout risk",
+        "overworked": "burnout risk",
+        "study too much": "burnout risk",
+        "burnout": "burnout risk",
+    }
+    for key, val in inferred_rules.items():
+        if key in text_lower and val not in inferred_risks:
+            inferred_risks.append(val)
+            
+    # For backward compatibility, map explicit_symptoms to somatic_symptoms
+    somatic_symptoms = list(explicit_symptoms)
             
     return CPEParameters(
         emotional_valency=valency,
@@ -151,6 +180,8 @@ def _mock_extract(text: str, context: Optional[ContextMetadata] = None) -> CPEPa
         cognitive_load=cognitive_load,
         academic_stress=academic_stress,
         somatic_symptoms=somatic_symptoms,
+        explicit_symptoms=explicit_symptoms,
+        inferred_risks=inferred_risks,
         confidence_score=confidence_score,
         sentiment_score=sentiment,
         semantic_density=semantic_density,
@@ -162,26 +193,36 @@ def _build_prompt(text: str, context: Optional[ContextMetadata] = None) -> str:
     metadata_str = ""
     if context:
         metadata_str = f"Context Metadata: Student ID={context.student_id}, Time of Day={context.time_of_day}, History={context.interaction_history_context}"
-
+ 
     prompt = f"""You are a Conversational Parameter Extractor. Your task is to analyze the student's transcript and extract their emotional, cognitive, somatic, and academic stress indicators as quantitative parameters.
-
+ 
 {metadata_str}
-
+ 
 Student Transcript:
 "{text}"
-
-Analyze the transcript carefully and return ONLY a valid JSON object matching the schema below. 
-Do not output any markdown formatting (like ```json), explanations, preambles, or trailing text.
-
+ 
+Follow this structured Chain-of-Thought reasoning internally before generating your final output:
+Step 1: Identify all emotional cues. Decompose all coexisting emotions (e.g., Joy, Anxiety, Fear, Sadness, Hope, Confidence) and assign an internal confidence level (0.0 to 1.0) to each.
+Step 2: Identify all physical symptoms explicitly mentioned by the speaker. Do not infer symptoms.
+Step 3: Determine the primary source of distress. Analyze if it is academic factors (exams, coursework, grades), personal issues, health issues, or other factors.
+Step 4: Estimate cognitive load based on confusion, repetition, or overwork.
+Step 5: Determine the dominant emotional conclusion based on the speaker's overall emphasis and concluding statements.
+Step 6: Generate the final JSON based on these reasoning steps.
+ 
+JSON Schema Instructions:
+Return ONLY a valid JSON object matching the schema below. Do not include markdown codeblocks (like ```json), explanations, or preambles.
+ 
 JSON Schema:
 {{
-  "emotional_valency": float between -1.0 (very negative/sad/angry) and 1.0 (very positive/happy). DO NOT average positive and negative emotions equally to 0.0 if they coexist. Weigh emotions by intensity, frequency, and overall emphasis. If a user is proud but anxious about interviews, valency should reflect the dominant positive state (e.g. +0.20 to +0.30) rather than a flat neutral 0.00.,
-  "emotional_arousal": float between 0.0 (calm/sleepy) and 1.0 (agitated/stressed/excited),
+  "emotional_valency": float between -1.0 (very negative) and 1.0 (very positive). DO NOT average positive and negative cues equally to 0.0. Compute valency based on the dominant emotional conclusion identified in Step 5.,
+  "emotional_arousal": float between 0.0 (calm) and 1.0 (agitated/excited),
   "cognitive_load": integer between 1 (relaxed/clear) and 5 (extreme overload/confusion),
-  "academic_stress": boolean. Set to true ONLY if the student's distress or worry is directly linked to exams, assignments, grades, deadlines, projects, or coursework. Set to false if they explicitly state that academics/classes are going fine, or say they are not worried about academics.,
-  "somatic_symptoms": list of strings. Extract physical symptoms explicitly stated by the user. Normalize conversational descriptions into standard symptoms (e.g. "heartbeat is racing" -> "racing heartbeat", "nauseous" -> "nausea", "appetite has decreased" -> "reduced appetite", "head hurts" -> "headache", "can't sleep" -> "insomnia"). Return an empty list [] if no symptoms are mentioned.,
+  "academic_stress": boolean. Set to true ONLY if academic factors (exams, assignments, grades, coursework) are the primary cause of the student's distress. If academic topics are mentioned but described as manageable, fine, or unrelated to the distress, set academic_stress=false.,
+  "somatic_symptoms": list of strings. Populate this with the same items as explicit_symptoms (for backward compatibility).,
+  "explicit_symptoms": list of strings. Include ONLY physical symptoms explicitly stated by the speaker (e.g. "racing heartbeat" if they say "heartbeat is racing", "nausea" if they say "nauseous", "reduced appetite" if they say "appetite decreased", "headache" if they say "head hurts"). NEVER infer medical symptoms.,
+  "inferred_risks": list of strings. Include inferred physical or cognitive risks based on lifestyle cues (e.g. "sleep deprivation risk" if they mention studying for 20 hours or getting no sleep, "burnout risk" if they mention working without breaks). Do not list these as explicit symptoms.,
   "confidence_score": float between 0.0 and 1.0 representing your extraction confidence,
-  "sentiment_score": float between -1.0 and 1.0 representing overall sentiment. Weigh coexisting emotions by intensity and emphasis rather than averaging to a flat 0.00.
+  "sentiment_score": float between -1.0 and 1.0 representing overall sentiment computed based on the dominant emotional conclusion.
 }}"""
     return prompt
 

@@ -31,7 +31,15 @@ class CPEParameters(BaseModel):
     )
     somatic_symptoms: List[str] = Field(
         default_factory=list, 
-        description="List of somatic complaints identified (e.g., insomnia, fatigue, headache, stomachache)"
+        description="Deprecated: List of somatic complaints identified (e.g., insomnia, fatigue, headache, stomachache)"
+    )
+    explicit_symptoms: List[str] = Field(
+        default_factory=list, 
+        description="List of somatic complaints explicitly stated by the user (e.g., headache, nausea, racing heartbeat)"
+    )
+    inferred_risks: List[str] = Field(
+        default_factory=list, 
+        description="List of inferred physical or cognitive risks (e.g., sleep deprivation risk, burnout risk)"
     )
     confidence_score: float = Field(
         default=1.0, 

@@ -45,6 +45,24 @@ const PRESETS = [
         student_id: "student_mixed_somatic",
         time_of_day: "afternoon",
         history: "Testing mixed emotions and explicit somatic symptoms."
+    },
+    {
+        text: "My exams are tomorrow and I'm terrified.",
+        student_id: "student_causal_true",
+        time_of_day: "evening",
+        history: "Testing causal academic stress (True)."
+    },
+    {
+        text: "My classes are going well. I'm worried about my grandfather.",
+        student_id: "student_causal_false",
+        time_of_day: "afternoon",
+        history: "Testing causal academic stress (False) with non-academic distress."
+    },
+    {
+        text: "I got no sleep last night because I was studying all night for 20 hours.",
+        student_id: "student_inferred_risks",
+        time_of_day: "morning",
+        history: "Testing explicit vs inferred somatic symptoms."
     }
 ];
 
@@ -377,16 +395,28 @@ function renderResults(data) {
         acadStatus.textContent = "None";
     }
     
-    // Somatic Symptoms Badges
+    // Somatic Symptoms Badges (Explicit)
     const somaticCard = document.getElementById("risk-somatic");
     const somaticStatus = document.getElementById("somatic-status");
-    const symptoms = params.somatic_symptoms;
-    if (symptoms && symptoms.length > 0) {
+    const explicit_syms = params.explicit_symptoms || params.somatic_symptoms;
+    if (explicit_syms && explicit_syms.length > 0) {
         somaticCard.className = "risk-card active-warning";
-        somaticStatus.textContent = symptoms.join(", ");
+        somaticStatus.textContent = explicit_syms.join(", ");
     } else {
         somaticCard.className = "risk-card";
         somaticStatus.textContent = "None";
+    }
+    
+    // Inferred Risks Badges
+    const inferredCard = document.getElementById("risk-inferred");
+    const inferredStatus = document.getElementById("inferred-status");
+    const risks = params.inferred_risks;
+    if (risks && risks.length > 0) {
+        inferredCard.className = "risk-card active-alert";
+        inferredStatus.textContent = risks.join(", ");
+    } else {
+        inferredCard.className = "risk-card";
+        inferredStatus.textContent = "None";
     }
     
     // Metadata stats

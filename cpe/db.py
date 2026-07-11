@@ -27,6 +27,8 @@ class CPEExtractionModel(Base):
     cognitive_load = Column(Integer, nullable=False)
     academic_stress = Column(Boolean, nullable=False)
     somatic_symptoms = Column(Text, nullable=False)  # Stored as JSON string
+    explicit_symptoms = Column(Text, nullable=True)  # Stored as JSON string
+    inferred_risks = Column(Text, nullable=True)  # Stored as JSON string
     confidence_score = Column(Float, nullable=False)
     sentiment_score = Column(Float, nullable=False)
     
@@ -77,6 +79,8 @@ def save_extraction(
             cognitive_load=parameters.cognitive_load,
             academic_stress=parameters.academic_stress,
             somatic_symptoms=json.dumps(parameters.somatic_symptoms),
+            explicit_symptoms=json.dumps(parameters.explicit_symptoms),
+            inferred_risks=json.dumps(parameters.inferred_risks),
             confidence_score=parameters.confidence_score,
             sentiment_score=parameters.sentiment_score,
             pause_density=pause_density,
