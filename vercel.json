@@ -1,24 +1,18 @@
 {
   "version": 2,
-  "name": "conversational-parameter-extractor",
-  "builds": [
+  "cleanUrls": true,
+  "rewrites": [
     {
-      "src": "frontend/**",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/style.css",
-      "dest": "/frontend/style.css"
+      "source": "/style.css",
+      "destination": "/frontend/style.css"
     },
     {
-      "src": "/app.js",
-      "dest": "/frontend/app.js"
+      "source": "/app.js",
+      "destination": "/frontend/app.js"
     },
     {
-      "src": "/(.*)",
-      "dest": "/frontend/index.html"
+      "source": "/(.*)",
+      "destination": "/frontend/index.html"
     }
   ]
 }

@@ -1,0 +1,6 @@
+# Ignore everything in the root directory
+/*
+
+# Do not ignore the frontend folder and vercel config
+!frontend/
+!vercel.json
