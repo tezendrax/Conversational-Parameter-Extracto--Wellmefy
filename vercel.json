@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "name": "conversational-parameter-extractor",
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/(style.css|app.js|favicon.ico)",
+      "destination": "/frontend/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/frontend/index.html"
+    }
+  ]
+}
