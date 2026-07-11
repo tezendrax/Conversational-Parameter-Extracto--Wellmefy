@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPE - Emotional & Cognitive State Extractor</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="bg-gradient"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo-area futuristic-center">
+                <div class="logo-text">
+                    <h1><i class="fa-solid fa-wave-square logo-icon-inline"></i> CPE Engine</h1>
+                    <p>Conversational Parameter Extractor</p>
+                </div>
+            </div>
+            <div class="status-badge floating-badge" id="backend-status">
+                <span class="status-dot"></span> Checking Status...
+            </div>
+        </header>
+
+        <!-- Main Body Grid -->
+        <main class="dashboard-grid">
+            <!-- Left Panel: Inputs -->
+            <section class="input-panel glass-card">
+                <h2 class="panel-title"><i class="fa-solid fa-sliders"></i> Test Extraction Pipeline</h2>
+                
+                <!-- Presets / Quick Test Cases -->
+                <div class="preset-section">
+                    <label class="section-label">Quick Test Scenarios:</label>
+                    <div class="preset-chips">
+                        <button class="preset-chip" onclick="loadPreset(0)">
+                            <i class="fa-solid fa-graduation-cap"></i> CS Exam Stress
+                        </button>
+                        <button class="preset-chip" onclick="loadPreset(1)">
+                            <i class="fa-solid fa-face-smile"></i> Successful Project
+                        </button>
+                        <button class="preset-chip" onclick="loadPreset(2)">
+                            <i class="fa-solid fa-bed"></i> Insomnia & Fatigue
+                        </button>
+                        <button class="preset-chip" onclick="loadPreset(3)">
+                            <i class="fa-solid fa-head-side-virus"></i> Headache & Presentation
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Input Method Tabs -->
+                <div class="tabs">
+                    <button class="tab-btn active" id="tab-text" onclick="switchTab('text')">
+                        <i class="fa-solid fa-align-left"></i> Raw Text Input
+                    </button>
+                    <button class="tab-btn" id="tab-audio" onclick="switchTab('audio')">
+                        <i class="fa-solid fa-microphone"></i> Audio Upload
+                    </button>
+                </div>
+
+                <!-- Text Form -->
+                <div id="input-container-text" class="tab-content active">
+                    <div class="form-group">
+                        <label for="raw-text" class="field-label">Raw Student Transcript:</label>
+                        <textarea id="raw-text" placeholder="Type or paste what the student said here... (e.g. 'I feel so overwhelmed by my programming exam tomorrow, I could not sleep last night.')" rows="6"></textarea>
+                    </div>
+                </div>
+
+                <!-- Audio Form -->
+                <div id="input-container-audio" class="tab-content">
+                    <div class="form-group">
+                        <label class="field-label">Upload Audio File:</label>
+                        <div class="upload-dropzone" id="audio-dropzone" onclick="triggerFileSelect()">
+                            <i class="fa-solid fa-cloud-arrow-up drop-icon"></i>
+                            <p class="drop-text">Drag & Drop audio/video file here or <span class="highlight">browse</span></p>
+                            <p class="drop-sub">Supports .wav, .mp3, .m4a, .mp4, .ogg</p>
+                            <input type="file" id="audio-file" accept=".mp3,.wav,.m4a,.mp4,.ogg,audio/*,video/mp4,video/ogg" style="display: none;" onchange="handleFileSelect(event)">
+                        </div>
+                        <div id="selected-file-info" class="selected-file-info" style="display: none;">
+                            <span class="file-icon"><i class="fa-solid fa-file-audio"></i></span>
+                            <div class="file-details">
+                                <span class="file-name" id="selected-file-name">filename.wav</span>
+                                <span class="file-size" id="selected-file-size">0.0 MB</span>
+                            </div>
+                            <button type="button" class="remove-file-btn" onclick="clearSelectedFile(event)"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Collapsible Context Metadata -->
+                <div class="collapsible-section">
+                    <button class="collapsible-trigger" onclick="toggleMetadata()">
+                        <span><i class="fa-solid fa-circle-info"></i> Context Metadata (Optional)</span>
+                        <i class="fa-solid fa-chevron-down arrow-icon" id="meta-arrow"></i>
+                    </button>
+                    <div class="collapsible-content" id="metadata-pane" style="display: none;">
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label for="student-id" class="sub-label">Student ID:</label>
+                                <input type="text" id="student-id" value="student_test_123">
+                            </div>
+                            <div class="form-group">
+                                <label for="time-of-day" class="sub-label">Time of Day:</label>
+                                <select id="time-of-day">
+                                    <option value="morning">Morning</option>
+                                    <option value="afternoon" selected>Afternoon</option>
+                                    <option value="evening">Evening</option>
+                                    <option value="night">Night</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="history-context" class="sub-label">History / Background Context:</label>
+                            <input type="text" id="history-context" placeholder="e.g., History of exam anxiety, first session.">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button class="submit-btn" id="submit-btn" onclick="submitExtraction()">
+                    <span id="submit-text"><i class="fa-solid fa-wand-magic-sparkles"></i> Run Extraction</span>
+                    <span id="submit-spinner" class="spinner" style="display: none;"><i class="fa-solid fa-spinner fa-spin"></i> Processing...</span>
+                </button>
+            </section>
+
+            <!-- Right Panel: Results -->
+            <section class="results-panel glass-card">
+                <h2 class="panel-title"><i class="fa-solid fa-square-poll-vertical"></i> Extraction Results</h2>
+
+                <!-- Empty State -->
+                <div class="empty-state" id="empty-state">
+                    <div class="empty-icon"><i class="fa-solid fa-heart-pulse"></i></div>
+                    <h3>Awaiting Input</h3>
+                    <p>Enter text or upload an audio file and click "Run Extraction" to analyze the student's emotional markers.</p>
+                </div>
+
+                <!-- Error State -->
+                <div class="error-state" id="error-state" style="display: none;">
+                    <div class="error-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
+                    <h3>Extraction Failed</h3>
+                    <p id="error-message">Connection to server lost.</p>
+                </div>
+
+                <!-- Result Content -->
+                <div class="result-content" id="result-content" style="display: none;">
+                    
+                    <!-- Clean Transcript Box -->
+                    <div class="transcript-box">
+                        <span class="badge-label">Cleaned Transcript</span>
+                        <p id="result-transcript">"I feel so overwhelmed by my programming exam tomorrow, I could not sleep last night."</p>
+                    </div>
+
+                    <!-- Metrics Indicators -->
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <span class="metric-title">Semantic Density</span>
+                            <span class="metric-value" id="metric-density">1.00</span>
+                            <span class="metric-desc">Unique words ratio</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="metric-title">Word Repetition Index</span>
+                            <span class="metric-value" id="metric-repetition">0.00</span>
+                            <span class="metric-desc">Vocabulary repetition ratio</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="metric-title">Neg/Pos Word Ratio</span>
+                            <span class="metric-value" id="metric-ratio">2.50</span>
+                            <span class="metric-desc">Linguistic marker index</span>
+                        </div>
+                        <div class="metric-card" id="metric-card-pause">
+                            <span class="metric-title">Pause Density</span>
+                            <span class="metric-value" id="metric-pause">N/A</span>
+                            <span class="metric-desc">Audio silence ratio</span>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <!-- Primary Parameter Outputs -->
+                    <div class="parameters-section">
+                        
+                        <!-- Valence (Mood) -->
+                        <div class="parameter-group">
+                            <div class="parameter-header">
+                                <span class="param-name"><i class="fa-solid fa-face-meh"></i> Mood (Emotional Valency)</span>
+                                <span class="param-value" id="valency-val">0.00</span>
+                            </div>
+                            <div class="gauge-container">
+                                <div class="gauge-bar">
+                                    <div class="gauge-fill valency-fill" id="valency-fill" style="width: 50%;"></div>
+                                </div>
+                                <div class="gauge-labels">
+                                    <span>Negative (-1.0)</span>
+                                    <span>Neutral</span>
+                                    <span>Positive (1.0)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Arousal (Energy) -->
+                        <div class="parameter-group">
+                            <div class="parameter-header">
+                                <span class="param-name"><i class="fa-solid fa-bolt"></i> Agitation (Emotional Arousal)</span>
+                                <span class="param-value" id="arousal-val">0.50</span>
+                            </div>
+                            <div class="gauge-container">
+                                <div class="gauge-bar">
+                                    <div class="gauge-fill arousal-fill" id="arousal-fill" style="width: 50%;"></div>
+                                </div>
+                                <div class="gauge-labels">
+                                    <span>Calm/Sleepy (0.0)</span>
+                                    <span>Normal</span>
+                                    <span>Agitated/Excited (1.0)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cognitive Load -->
+                        <div class="parameter-group">
+                            <div class="parameter-header">
+                                <span class="param-name"><i class="fa-solid fa-brain"></i> Mental Fatigue (Cognitive Load)</span>
+                                <span class="param-value" id="cognitive-val">2 / 5</span>
+                            </div>
+                            <div class="steps-container" id="cognitive-steps">
+                                <div class="step-dot" data-step="1">1</div>
+                                <div class="step-dot" data-step="2">2</div>
+                                <div class="step-dot" data-step="3">3</div>
+                                <div class="step-dot" data-step="4">4</div>
+                                <div class="step-dot" data-step="5">5</div>
+                            </div>
+                        </div>
+
+                        <!-- Risk Indicators -->
+                        <div class="risk-section">
+                            <!-- Academic Stress -->
+                            <div class="risk-card" id="risk-academic">
+                                <span class="risk-icon"><i class="fa-solid fa-circle-exclamation"></i></span>
+                                <div class="risk-info">
+                                    <span class="risk-title">Academic Stress</span>
+                                    <span class="risk-status" id="academic-status">Detected</span>
+                                </div>
+                            </div>
+                            <!-- Somatic Symptoms -->
+                            <div class="risk-card" id="risk-somatic">
+                                <span class="risk-icon"><i class="fa-solid fa-stethoscope"></i></span>
+                                <div class="risk-info">
+                                    <span class="risk-title">Somatic Symptoms</span>
+                                    <span class="risk-status" id="somatic-status">None</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Meta stats -->
+                        <div class="meta-row">
+                            <div class="meta-item">
+                                <span class="meta-lbl">LLM Confidence:</span>
+                                <strong id="meta-confidence">95%</strong>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-lbl">Sentiment Score:</span>
+                                <strong id="meta-sentiment">0.00</strong>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- JS script -->
+    <script src="app.js"></script>
+</body>
+</html>
