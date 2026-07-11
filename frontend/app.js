@@ -1,5 +1,7 @@
-// API Base Endpoint (served from the same origin)
-const API_BASE = window.location.origin;
+// API Base Endpoint (use local port 8000 if deployed to Vercel/production)
+const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? window.location.origin
+    : 'http://localhost:8000';
 
 // State Variables
 let currentTab = 'text';
