@@ -4,7 +4,7 @@ The Conversational Parameter Extractor (CPE) transforms raw natural language (sp
 
 ---
 
-## 🚀 Features
+## Features
 
 *   **Speech-to-Text (ASR)**: Powered by Whisper to transcribe audio files and calculate **Pause Density** (silence ratio).
 *   **Text Cleaning & Normalization**: Cleans conversational fillers ("um", "uh", "like", "you know"), strips speaker tags (e.g. `Student:`), and calculates **Semantic Density** and **Word Repetition Index**.
